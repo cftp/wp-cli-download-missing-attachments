@@ -40,6 +40,7 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 				'failed'             => 0,
 				'downloaded'         => 0,
 			);
+			$warnings = array();
 			if ( $generate_thumbs ) {
 				$results[ 'downloaded_images' ] = 0;
 				$results[ 'processed_images' ]  = 0;
@@ -57,15 +58,17 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 				$line_msg .= ', and generating thumbs';
 			WP_CLI::line( $line_msg );
 
-			$progress = new \cli\progress\Bar( 'Downloading',  $results[ 'files' ] );
+			$progress = new \cli\progress\Bar( 'Progress',  $results[ 'files' ] );
 
 			foreach ( $attachment_ids as $a_id ) {
 
 				$progress->tick();
 
 				$meta = get_post_meta( $a_id, '_wp_attachment_metadata', true );
-				if ( ! $meta )
+				if ( ! $meta ) {
+					$warnings[] = sprintf( 'No metadata for attachment ID %d', $a_id );
 					continue;
+				}
 				$remote_url = $remote_url_base . $meta[ 'file' ];
 				$local_path = $base_dir   . $meta[ 'file' ];
 
@@ -79,7 +82,7 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 				// \WP_CLI::log( sprintf( 'Now getting %s', $remote_url ) );
 				$tmp = download_url( $remote_url );
 				if ( is_wp_error( $tmp ) ) {
-					\WP_CLI::warning( sprintf( 'Could not download %s, got error: %s', $remote_url, $tmp->get_error_message() ) );
+					$warnings[] = sprintf( 'Could not download %s, got error: %s', $remote_url, $tmp->get_error_message() );
 					$results[ 'failed' ]++;
 					continue;
 				}
@@ -90,12 +93,12 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 				wp_mkdir_p( $dir );
 				rename( $tmp, $local_path );
 
-                $image = false;
+				$image = false;
 				if ( $generate_thumbs )
-	                $image = get_post( $a_id );
+					$image = get_post( $a_id );
 
 				// \WP_CLI::log( sprintf( 'Facts: %s %s ', $image->post_type, substr( $image->post_mime_type, 0, 6 ) ) );
-                // var_dump( $image );
+				// var_dump( $image );
 				if ( 
 						$image 
 						&& 'attachment' == $image->post_type 
@@ -108,9 +111,9 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 					$results[ 'downloaded_images' ]++;
 					
 					if ( is_wp_error( $metadata ) )
-						\WP_CLI::warning( sprintf( 'Error generating image thumbnails for attachment ID %d: %s', $metadata->get_error_message() ) );
+						$warnings[] = sprintf( 'Error generating image thumbnails for attachment ID %d: %s', $metadata->get_error_message() );
 					else if ( empty( $metadata ) )
-						\WP_CLI::warning( sprintf( 'Unknown error generating image thumbnails for attachment ID %d' ) );
+						$warnings[] = sprintf( 'Unknown error generating image thumbnails for attachment ID %d' );
 					else
 						$results[ 'processed_images' ]++;
 				}
@@ -123,6 +126,9 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 		}
 
 		$progress->finish();
+
+		foreach ( $warnings as $warning )
+			\WP_CLI::warning( $warning );
 
 		$lines = array();
 		foreach ( $results as $name => $count )
