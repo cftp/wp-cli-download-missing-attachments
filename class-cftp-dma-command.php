@@ -47,6 +47,7 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 			}
 
 			$attachment_ids = $this->get_attachment_ids();
+			// $attachment_ids = array( 307449, 344018 );
 			$remote_url_base = trailingslashit( $assoc_args[ 'remote-url-base' ] );
 			$dirs = wp_upload_dir();
 			$base_dir = trailingslashit( $dirs[ 'basedir' ] );
@@ -64,13 +65,29 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 
 				$progress->tick();
 
+				$image = get_post( $a_id );
 				$attached_file = get_post_meta( $a_id, '_wp_attached_file', true );
-				if ( ! $attached_file ) {
-					$warnings[] = sprintf( 'No attached_file metadata for attachment ID %d', $a_id );
-					continue;
+				if ( ! $attached_file && '/wp-content/uploads/' == substr( $image->guid, 0, 20 ) ) {
+					// Try to work out the file URL from elsewhere
+					$guid = $image->guid;
+					$scheme = parse_url( $remote_url_base, PHP_URL_SCHEME );
+					$domain = $scheme . '://' . parse_url( $remote_url_base, PHP_URL_HOST );
+					$remote_url = $domain . $guid;
+					// Is the file web accessible?
+					$result = wp_remote_head( $remote_url );
+					if ( is_wp_error( $result ) ) {
+						$warnings[] = sprintf( 'Could not retrieve remote file for attachment ID %d, HTTP error "%s"', $a_id, $result->get_error_message() );
+					} elseif ( 200 != wp_remote_retrieve_response_code( $result ) ) {
+						$warnings[] = sprintf( 'Could not retrieve remote file for attachment ID %d, HTTP response code %d', $a_id, wp_remote_retrieve_response_code( $result ) );
+						continue;
+					}
+					$local_path = str_replace( '/wp-content/uploads/', '', $base_dir ) . $attached_file;
+					$attached_file = str_replace( $remote_url_base, '', $remote_url );
+					update_post_meta( $a_id, '_wp_attached_file', $attached_file );
+				} else {
+					$remote_url = $remote_url_base . $attached_file;
+					$local_path = $base_dir        . $attached_file;
 				}
-				$remote_url = $remote_url_base . $attached_file;
-				$local_path = $base_dir        . $attached_file;
 
 				// Check if the file already exists
 				if ( file_exists( $local_path ) ) {
@@ -93,12 +110,7 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 				wp_mkdir_p( $dir );
 				rename( $tmp, $local_path );
 
-				$image = false;
-				if ( $generate_thumbs )
-					$image = get_post( $a_id );
-
 				// \WP_CLI::log( sprintf( 'Facts: %s %s ', $image->post_type, substr( $image->post_mime_type, 0, 6 ) ) );
-				// var_dump( $image );
 				if ( 
 						$image 
 						&& 'attachment' == $image->post_type 
@@ -107,13 +119,16 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 					// \WP_CLI::log( sprintf( 'ID is an image', $a_id ) );
 
 					@set_time_limit( 900 ); // 5 minutes per image should be PLENTY
+					
 					$metadata = wp_generate_attachment_metadata( $a_id, $local_path );
+					update_post_meta( $a_id, '_wp_attachment_metadata', $metadata );
+					
 					$results[ 'downloaded_images' ]++;
 					
 					if ( is_wp_error( $metadata ) )
-						$warnings[] = sprintf( 'Error generating image thumbnails for attachment ID %d: %s', $metadata->get_error_message() );
+						$warnings[] = sprintf( 'Error generating image thumbnails for attachment ID %d: %s', $a_id, $metadata->get_error_message() );
 					else if ( empty( $metadata ) )
-						$warnings[] = sprintf( 'Unknown error generating image thumbnails for attachment ID %d' );
+						$warnings[] = sprintf( 'Unknown error generating image thumbnails for attachment ID %d', $a_id );
 					else
 						$results[ 'processed_images' ]++;
 				}
@@ -151,12 +166,6 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 			'post_status' => 'any',
 			'nopaging'    => true,
 			'fields'      => 'ids',
-			'meta_query'  => array(
-				array(
-					'key'     => '_wp_attachment_metadata',
-					'compare' => 'EXISTS',
-				),
-			),
 			'order'       => 'DESC',
 			'orderby'     => 'date'
 		) );
