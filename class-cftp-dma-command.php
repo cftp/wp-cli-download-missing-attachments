@@ -64,13 +64,13 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 
 				$progress->tick();
 
-				$meta = get_post_meta( $a_id, '_wp_attachment_metadata', true );
-				if ( ! $meta ) {
-					$warnings[] = sprintf( 'No metadata for attachment ID %d', $a_id );
+				$attached_file = get_post_meta( $a_id, '_wp_attached_file', true );
+				if ( ! $attached_file ) {
+					$warnings[] = sprintf( 'No attached_file metadata for attachment ID %d', $a_id );
 					continue;
 				}
-				$remote_url = $remote_url_base . $meta[ 'file' ];
-				$local_path = $base_dir   . $meta[ 'file' ];
+				$remote_url = $remote_url_base . $attached_file;
+				$local_path = $base_dir        . $attached_file;
 
 				// Check if the file already exists
 				if ( file_exists( $local_path ) ) {
