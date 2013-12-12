@@ -52,8 +52,17 @@ class CFTP_GRF_Command extends WP_CLI_Command {
 			$generate_thumbs = $assoc_args[ 'generate-thumbs' ];
 
 			$results[ 'files' ] = count( $attachment_ids );
+			$line_msg = 'Downloading ' . $results[ 'files' ] . ' files';
+			if ( $generate_thumbs )
+				$line_msg .= ', and generating thumbs';
+			WP_CLI::line( $line_msg );
+
+			$progress = new \cli\progress\Bar( 'Downloading',  $results[ 'files' ] );
 
 			foreach ( $attachment_ids as $a_id ) {
+
+				$progress->tick();
+
 				$meta = get_post_meta( $a_id, '_wp_attachment_metadata', true );
 				if ( ! $meta )
 					continue;
@@ -112,6 +121,8 @@ class CFTP_GRF_Command extends WP_CLI_Command {
 		} catch ( Exception $e ) {
 			\WP_CLI::error( $e->getMessage() );
 		}
+
+		$progress->finish();
 
 		$lines = array();
 		foreach ( $results as $name => $count )
