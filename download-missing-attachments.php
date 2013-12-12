@@ -1,7 +1,7 @@
 <?php 
 
 /*
-Plugin Name: WP CLI: Get Remote Files 
+Plugin Name: WP CLI: Download Missing Attachments 
 Plugin URI: http://codeforthepeople.com/?plugin=
 Description: Gets files for a DB you've loaded but not been given the files for.
 Network: true
@@ -45,4 +45,4 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /* WP CLI command */
 if ( defined( 'WP_CLI' ) && WP_CLI )
-	require_once( dirname( __FILE__ ) . '/class-cftp-grf-command.php' );
+	require_once( dirname( __FILE__ ) . '/class-cftp-dma-command.php' );

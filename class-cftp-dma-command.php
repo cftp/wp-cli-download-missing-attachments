@@ -1,6 +1,6 @@
 <?php 
 
-class CFTP_GRF_Command extends WP_CLI_Command {
+class CFTP_DMA_Command extends WP_CLI_Command {
 
 	public function __construct() {
 
@@ -161,5 +161,5 @@ class CFTP_GRF_Command extends WP_CLI_Command {
 
 }
 
-WP_CLI::add_command( 'remote-attachments', 'CFTP_GRF_Command' );
+WP_CLI::add_command( 'remote-attachments', 'CFTP_DMA_Command' );
 
