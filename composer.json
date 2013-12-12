@@ -1,0 +1,13 @@
+{
+	"name": "cftp/wp-cli-download-missing-attachments",
+	"description": "Downloads missing attachments from your attachments metadata from a remote server.",
+	"license"    : "GPL-2.0+",
+		"authors"    : [
+			{
+				"name"    : "Code For The People",
+				"homepage": "http://codeforthepeople.com/"
+			}
+		],
+	"minimum-stability": "dev",
+	"require": { }
+}
