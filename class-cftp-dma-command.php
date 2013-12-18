@@ -67,6 +67,9 @@ class CFTP_DMA_Command extends WP_CLI_Command {
 
 				$image = get_post( $a_id );
 				$attached_file = get_post_meta( $a_id, '_wp_attached_file', true );
+				// The GUID appears to contain reference to a file, but it's not stored normally.
+				// Attempt to grab it. Warning: the following code may be highly specific to
+				// the situation it was specifically written for. So. Consider yourself warned.
 				if ( ! $attached_file && '/wp-content/uploads/' == substr( $image->guid, 0, 20 ) ) {
 					// Try to work out the file URL from elsewhere
 					$guid = $image->guid;
