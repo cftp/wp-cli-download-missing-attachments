@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: WP CLI: Download Missing Attachments 
-Plugin URI: http://codeforthepeople.com/?plugin=
+Plugin URI: https://github.com/cftp/wp-cli-download-missing-attachments
 Description: Gets files for a DB you've loaded but not been given the files for.
 Network: true
 Version: 0.1
